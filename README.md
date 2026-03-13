@@ -48,7 +48,7 @@ La aplicación estará disponible en `http://localhost:3000`
 Esta es la configuración por defecto del proyecto.
 
 ```env
-AZURE_OPENAI_API_KEY=tu_api_key_de_azure
+AZURE_OPENAI_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 AZURE_OPENAI_ENDPOINT=https://tu-recurso.openai.azure.com/
 AZURE_OPENAI_DEPLOYMENT=gpt-4o
 AZURE_OPENAI_AUDIO_DEPLOYMENT=gpt-4o-audio-preview
@@ -64,7 +64,7 @@ AZURE_OPENAI_AUDIO_DEPLOYMENT=gpt-4o-audio-preview
 Si prefieres usar la API de OpenAI directamente:
 
 ```env
-OPENAI_API_KEY=sk-tu_api_key_de_openai
+OPENAI_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 **Nota:** Deberás modificar `server/utils/tools.ts` para usar el TTS de OpenAI en lugar de `gpt-audio`:
@@ -88,7 +88,7 @@ export async function generateSpeech(text: string): Promise<string | null> {
 Para la generación de escenas visuales, se usa Replicate:
 
 ```env
-REPLICATE_API_TOKEN=r8_tu_token_de_replicate
+REPLICATE_API_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
 **Para obtener credenciales:**

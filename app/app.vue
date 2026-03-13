@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 interface ChatResponse {
   text: string
@@ -11,7 +11,7 @@ interface ChatResponse {
 }
 
 const currentImage = ref<string>('https://placehold.co/1024x768?text=Welcome+to+LenguAI')
-const currentText = ref<string>("Hola! I'm your language tutor. Let's start our story. Where should we go?")
+const currentText = ref<string>('Where do you want to go today?')
 const suggestedOptions = ref<string[]>(['To the market', 'To the library', 'Surprise me'])
 const showOptions = ref<boolean>(true) // Show options initially, hide while waiting for audio
 const isLoading = ref(false)
@@ -28,6 +28,53 @@ const wordTimings = ref<{ word: string; startTime: number; endTime: number }[]>(
 
 // History state
 const conversationHistory = ref<{ role: 'user' | 'assistant'; content: string }[]>([])
+
+type CountryOption = {
+  country: string
+  label: string
+  flag: string
+  seedPrompt: string
+}
+
+const countryOptions: CountryOption[] = [
+  {
+    country: 'France',
+    label: 'France',
+    flag: '🇫🇷',
+    seedPrompt:
+      "Crée un décor dans un lieu aléatoire en France, et fais du jeu de rôle avec l’utilisateur tout en lui enseignant le français."
+  },
+  {
+    country: 'United States',
+    label: 'United States',
+    flag: '🇺🇸',
+    seedPrompt:
+      'Create a setting in a random place in the United States, and roleplay with the user while you teach them English.'
+  },
+  {
+    country: 'Spain',
+    label: 'Spain',
+    flag: '🇪🇸',
+    seedPrompt:
+      'Crea un escenario en un lugar aleatorio de España y haz roleplay con el usuario mientras le enseñas español.'
+  },
+  {
+    country: 'Italy',
+    label: 'Italy',
+    flag: '🇮🇹',
+    seedPrompt:
+      "Crea un'ambientazione in un luogo casuale in Italia e fai roleplay con l'utente mentre gli insegni l'italiano."
+  },
+  {
+    country: 'Brasil',
+    label: 'Brasil',
+    flag: '🇧🇷',
+    seedPrompt:
+      'Crie um cenário em um lugar aleatório no Brasil e faça roleplay com o usuário enquanto você ensina português.'
+  }
+]
+
+const isEmptyState = computed(() => conversationHistory.value.length === 0 && !isLoading.value)
 
 // Helper: Calculate Weighted Timings
 const calculateWordTimings = (text: string, duration: number) => {
@@ -320,6 +367,10 @@ const handleOptionClick = (option: string) => {
   sendMessage(option)
 }
 
+const handleCountryClick = (option: CountryOption) => {
+  sendMessage(option.seedPrompt)
+}
+
 // Recording Logic
 const startRecording = async () => {
   try {
@@ -360,42 +411,73 @@ const toggleRecording = () => {
 </script>
 
 <template>
-  <div class="h-screen w-full bg-slate-900 flex flex-col items-center justify-between relative overflow-hidden font-sans">
-    
-    <!-- Background Image Layer -->
+  <div class="h-screen w-full bg-slate-900 relative overflow-hidden font-sans">
+
+    <!-- Scene Background (soft) -->
     <div class="absolute inset-0 z-0">
-      <img :src="currentImage" alt="Scene" class="w-full h-full object-cover transition-opacity duration-700" />
-      <!-- Updated Overlay: Subtle gradient from bottom -->
-      <div class="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent"></div>
+      <img
+        :src="currentImage"
+        alt="Scene background"
+        class="absolute inset-0 w-full h-full object-cover transition-opacity duration-700 blur-md scale-105 opacity-35"
+      />
+      <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"></div>
     </div>
 
-    <!-- Header (Optional - Minimal) -->
-    <div class="z-10 w-full p-4 flex justify-between items-center bg-gradient-to-b from-black/30 to-transparent">
-        <div class="text-white/80 font-bold tracking-wider text-sm bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm">
-            LenguAI
+    <!-- Scene Card (centered, rounded) -->
+    <div class="absolute left-1/2 top-8 z-[1] w-full max-w-5xl -translate-x-1/2 px-4">
+      <div class="rounded-3xl overflow-hidden shadow-2xl border border-white/20 bg-black/10">
+        <div class="aspect-[16/9] w-full">
+          <img :src="currentImage" alt="Scene" class="w-full h-full object-cover" />
         </div>
-        <!-- Settings or Progress could go here -->
+      </div>
     </div>
 
-    <!-- Main Content Container: Pushed to bottom -->
-    <div class="z-10 w-full max-w-6xl flex flex-col justify-end pb-8 px-4 md:px-8 gap-6 h-full">
-      
-      <!-- Interaction Area: Floating Choices -->
-      <div v-if="showOptions" class="flex flex-col items-end gap-3 mb-4 pr-2">
-         <button 
-            v-for="(option, index) in suggestedOptions" 
+    <!-- Header (over scene) -->
+    <div class="absolute top-0 inset-x-0 z-10 w-full p-4 flex justify-between items-center bg-gradient-to-b from-black/30 to-transparent">
+      <div class="text-white/80 font-bold tracking-wider text-sm bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm">
+        LenguAI
+      </div>
+      <!-- Settings or Progress could go here -->
+    </div>
+
+    <!-- Bottom Panel (fixed height; does not overlap the scene) -->
+    <div class="absolute inset-x-0 bottom-0 z-10 w-full px-4 md:px-8 pb-8">
+      <div class="w-full max-w-6xl mx-auto flex flex-col justify-end gap-6 max-h-[80vh] overflow-y-auto">
+
+        <!-- Interaction Area: Floating Choices -->
+        <div v-if="isEmptyState" class="w-full">
+          <div class="text-white/90 font-semibold tracking-wide text-base md:text-lg mb-3">
+            Where do you want to go today?
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
+            <button
+              v-for="option in countryOptions"
+              :key="option.country"
+              @click="handleCountryClick(option)"
+              :disabled="isLoading"
+              class="group flex items-center gap-2 bg-surface/90 hover:bg-white text-slate-800 py-3 px-3 rounded-2xl shadow-lg border-2 border-transparent hover:border-primary/20 transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span class="text-xl leading-none">{{ option.flag }}</span>
+              <span class="font-semibold text-sm md:text-base truncate">{{ option.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div v-else-if="showOptions" class="flex flex-col items-end gap-3 pr-2">
+          <button
+            v-for="(option, index) in suggestedOptions"
             :key="index"
             @click="handleOptionClick(option)"
             :disabled="isLoading"
             class="group relative max-w-[90%] md:max-w-[70%] bg-surface/90 hover:bg-white text-slate-800 text-left py-3 px-5 rounded-2xl rounded-tr-sm shadow-lg border-2 border-transparent hover:border-primary/20 transition-all duration-300 transform hover:-translate-y-1 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <span class="text-primary font-bold mr-2 group-hover:text-secondary transition-colors">{{ index + 1 }}.</span> 
+            <span class="text-primary font-bold mr-2 group-hover:text-secondary transition-colors">{{ index + 1 }}.</span>
             <span class="font-medium">{{ option }}</span>
           </button>
-      </div>
+        </div>
 
-      <!-- Narrative Box (Glassmorphism) -->
-      <div class="bg-surface/80 backdrop-blur-xl border border-white/40 rounded-3xl p-6 md:p-8 shadow-2xl animate-fade-in-up relative overflow-hidden">
+        <!-- Narrative Box (Glassmorphism) -->
+        <div class="bg-surface/80 backdrop-blur-xl border border-white/40 rounded-3xl p-6 md:p-8 shadow-2xl animate-fade-in-up relative overflow-hidden">
         
         <!-- Decorative Top Line -->
         <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-50"></div>
@@ -419,15 +501,15 @@ const toggleRecording = () => {
                 </p>
 
                 <!-- Karaoke / Word Highlight Mode -->
-                <p v-else-if="isAudioPlaying && wordTimings.length > 0" class="text-slate-800 text-lg md:text-xl leading-relaxed font-serif font-medium flex flex-wrap gap-x-1.5 transition-all duration-300">
+                <p v-else-if="isAudioPlaying && wordTimings.length > 0" class="text-slate-800 text-lg md:text-xl leading-relaxed font-serif font-semibold flex flex-wrap gap-x-1.5">
                     <span 
                         v-for="(item, index) in wordTimings" 
                         :key="index"
                         :class="[
-                            'transition-all duration-200 rounded px-0.5',
+                            'relative inline-block transition-transform duration-200 rounded px-0.5 text-slate-700',
                             currentWordIndex === index 
-                                ? 'bg-primary/10 text-primary font-bold scale-105 shadow-sm transform -translate-y-0.5' 
-                                : 'text-slate-700'
+                                ? 'bg-primary/10 text-primary shadow-sm transform -translate-y-0.5 scale-[1.03] ring-1 ring-primary/15' 
+                                : ''
                         ]"
                     >
                         {{ item.word }}
@@ -486,6 +568,7 @@ const toggleRecording = () => {
         </div>
       </div>
 
+      </div>
     </div>
 
   </div>
